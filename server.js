@@ -2,6 +2,7 @@ var express = require('express')
 var cors = require('cors')
 var bodyParser = require('body-parser')
 var mongoose = require('mongoose')
+var jwt = require('jwt-simple')
 var app = express();
 
 var User = require('./models/User.js')
@@ -18,6 +19,16 @@ app.get('/posts', (req,res) => {
     res.send(posts)
 })
 
+app.get('/users', async (req,res) => {
+    try {
+        var users = await User.find({}, '-password -__v')
+        res.send(users)
+    } catch(err) {
+        console.log(err)
+        req.sendStatus(500)
+    }
+})
+
 app.post('/register', (req,res) => {
     var userData = req.body;
 
@@ -29,6 +40,24 @@ app.post('/register', (req,res) => {
             res.sendStatus(200);
         }
     })
+})
+
+app.post('/login', async (req,res) => {
+    var userData = req.body;
+
+    var user = await User.findOne({email: userData.email})
+
+    if(!user)
+        return res.status(401).send({message: 'email or password not found in DB!!!'});
+
+    if(user.password != userData.password)
+        return res.status(401).send({message: 'password not matched!!!'});
+
+    var payload = {}
+
+    var token = jwt.encode(payload, '123')
+
+    res.status(200).send({token});
 })
 
 mongoose.connect('mongodb://test:test123@ds229701.mlab.com:29701/pssocial', { useNewUrlParser: true }, (err) => {

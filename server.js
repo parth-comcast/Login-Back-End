@@ -2,6 +2,7 @@ var express = require('express')
 var cors = require('cors')
 var bodyParser = require('body-parser')
 var mongoose = require('mongoose')
+var bcrypt = require('bcrypt-nodejs')
 var jwt = require('jwt-simple')
 var app = express();
 
@@ -54,21 +55,22 @@ app.post('/register', (req,res) => {
 })
 
 app.post('/login', async (req,res) => {
-    var userData = req.body;
+    var loginData = req.body;
 
-    var user = await User.findOne({email: userData.email})
+    var user = await User.findOne({email: loginData.email})
 
     if(!user)
         return res.status(401).send({message: 'email or password not found in DB!!!'});
 
-    if(user.password != userData.password)
-        return res.status(401).send({message: 'password not matched!!!'});
+    bcrypt.compare(loginData.password, user.password, (err, isMatch) => {
+        if(!isMatch) return res.status(401).send({message: 'password not matched!!!'});
 
-    var payload = {}
+        var payload = {}
 
-    var token = jwt.encode(payload, '123')
-
-    res.status(200).send({token});
+        var token = jwt.encode(payload, '123')
+    
+        res.status(200).send({token});
+    })        
 })
 
 mongoose.connect('mongodb://test:test123@ds229701.mlab.com:29701/pssocial', { useNewUrlParser: true }, (err) => {

@@ -27,9 +27,10 @@ router.post('/login', async (req,res) => {
         return res.status(401).send({message: 'email or password not found in DB!!!'});
 
     bcrypt.compare(loginData.password, user.password, (err, isMatch) => {
-        if(!isMatch) return res.status(401).send({message: 'password not matched!!!'});
+        if(!isMatch) 
+            return res.status(401).send({message: 'password not matched!!!'});
 
-        var payload = {}
+        var payload = { sub: user._id }
 
         var token = jwt.encode(payload, '123')
     
@@ -37,4 +38,22 @@ router.post('/login', async (req,res) => {
     })        
 })
 
-module.exports = router
+var auth = {
+    router,
+    checkAuthenticated: (req, res, next) => {
+        if (!req.header('authorization'))
+            return res.status(401).send({message: 'Unauthorized!!!. Missing auth header'});
+
+        var token = req.header('authorization').split(' ')[1]
+        
+        var payload = jwt.decode(token, '123')
+
+        if(!payload)
+            return res.status(401).send({message: 'You are f**k Up!!!. auth header Invalid'});
+
+        req.userId = payload.sub;
+
+        next();
+    }
+}
+module.exports = auth

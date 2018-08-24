@@ -9,12 +9,11 @@ router.post('/register', (req,res) => {
     var userData = req.body;
 
     var user = new User(userData);
-    user.save((err, result) => {
-        if(err) {
-            console.log("saving user err!!");
-        } else {
-            res.sendStatus(200);
-        }
+    user.save((err, newUser) => {
+        if(err)
+            return res.status(500).send({message: 'Error saving user!!!'});
+
+        createSendToken(res, newUser);
     })
 })
 
@@ -24,19 +23,23 @@ router.post('/login', async (req,res) => {
     var user = await User.findOne({email: loginData.email})
 
     if(!user)
-        return res.status(401).send({message: 'email or password not found in DB!!!'});
+        return res.status(401).send({message: 'email not found in DB!!!'});
 
     bcrypt.compare(loginData.password, user.password, (err, isMatch) => {
         if(!isMatch) 
             return res.status(401).send({message: 'password not matched!!!'});
 
-        var payload = { sub: user._id }
-
-        var token = jwt.encode(payload, '123')
-    
-        res.status(200).send({token});
+        createSendToken(res, user);
     })        
 })
+
+function createSendToken(res, user) {
+    var payload = { sub: user._id }
+
+    var token = jwt.encode(payload, '123')
+
+    res.status(200).send({token});
+}
 
 var auth = {
     router,
